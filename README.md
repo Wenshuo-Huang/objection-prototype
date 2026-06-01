@@ -2,7 +2,8 @@
 
 A prototype built for the Objection hiring challenge. It verifies evidence packages from anonymous sources and generates privacy-preserving certificates with journalist-ready attribution language.
 
-**Live demo:** _(add your Vercel URL here after deploying)_
+**Live demo:** https://www.loom.com/share/51466d6ce68f4e80a4eb4244c463faa1
+**Deployed url:** https://objection-prototype.vercel.app/
 
 ---
 
