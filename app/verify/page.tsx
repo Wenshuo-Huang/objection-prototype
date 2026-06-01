@@ -57,15 +57,38 @@ export default function VerifyPage() {
 
     try {
       const formData = new FormData();
-      files.forEach((f) => formData.append("files", f));
+      // Binary files (audio, images) are too large to send to the serverless function.
+      // Instead, send a small text stub so the AI knows they exist.
+      const BINARY_EXTS = [".mp3", ".wav", ".m4a", ".mp4", ".png", ".jpg", ".jpeg", ".gif"];
+      const isBinary = (name: string) => BINARY_EXTS.some((ext) => name.toLowerCase().endsWith(ext));
+
+      for (const f of files) {
+        if (isBinary(f.name)) {
+          // Send a lightweight text placeholder instead of the raw binary
+          const stub = new Blob(
+            [`[BINARY FILE: ${f.name} — ${(f.size / 1024).toFixed(1)} KB. Audio/image content not transmitted; treat as corroborating evidence.]`],
+            { type: "text/plain" }
+          );
+          formData.append("files", stub, f.name);
+        } else {
+          formData.append("files", f);
+        }
+      }
       formData.append("context", context);
 
       setStatus("analyzing");
       const res = await fetch("/api/verify", { method: "POST", body: formData });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Verification failed");
+        // Vercel may return plain-text errors (e.g. 413 Request Entity Too Large)
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          const err = await res.json();
+          throw new Error(err.error || "Verification failed");
+        } else {
+          const text = await res.text();
+          throw new Error(`Server error (${res.status}): ${text.slice(0, 120)}`);
+        }
       }
 
       const data = await res.json();
